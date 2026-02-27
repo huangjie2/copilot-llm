@@ -1,0 +1,69 @@
+# GitHub Copilot API Proxy Configuration
+
+quarkus:
+  application:
+    name: copilot-proxy
+    version: 1.0.0
+
+  http:
+    port: 8080
+
+  log:
+    level: INFO
+    console:
+      enable: true
+
+# Copilot Proxy Configuration
+copilot:
+  # Account type: individual, business, enterprise
+  # For enterprise accounts, the API URL will be: https://api.enterprise.githubcopilot.com
+  # For business accounts: https://api.business.githubcopilot.com
+  # For individual accounts: https://api.githubcopilot.com
+  account-type: individual
+  
+  # VSCode Copilot OAuth Client ID (this is public, used by VSCode)
+  oauth:
+    client-id: Iv1.b507a08c87ecfe98
+    scopes: read:user
+  
+  # GitHub OAuth endpoints
+  github:
+    device-code-url: https://github.com/login/device/code
+    access-token-url: https://github.com/login/oauth/access_token
+    verification-url: https://github.com/login/device
+  
+  # Copilot token endpoint (exchange GitHub token for Copilot token)
+  token-url: https://api.github.com/copilot_internal/v2/token
+  
+  # API base URLs (auto-selected based on account-type)
+  api:
+    individual: https://api.githubcopilot.com
+    business: https://api.business.githubcopilot.com
+    enterprise: https://api.enterprise.githubcopilot.com
+  
+  # Default model (can be overridden in request)
+  # Available models: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo,
+  #                   claude-3.5-sonnet, claude-3-opus, o1, o1-mini, o1-preview
+  default-model: gpt-4o
+  
+  # Headers for VSCode emulation (required for API access)
+  headers:
+    editor-version: vscode/1.85.1
+    editor-plugin-version: copilot-chat/0.26.7
+    copilot-integration-id: vscode-chat
+    user-agent: GitHubCopilotChat/0.26.7
+    openai-intent: conversation-panel
+  
+  # Token refresh buffer (seconds before expiry to refresh)
+  token-refresh-buffer: 60
+  
+  # Token storage directory (default: ~/.config/copilot-proxy)
+  # token-dir: ~/.config/copilot-proxy
+
+# Additional Quarkus settings for production
+#quarkus:
+#  http:
+#    host: 0.0.0.0
+#    port: 8080
+#    access-log:
+#      enabled: true

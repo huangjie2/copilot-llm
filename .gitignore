@@ -1,0 +1,36 @@
+# Compiled
+target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Token storage (IMPORTANT: never commit tokens!)
+.config/
+
+# Quarkus
+.quarkus/
