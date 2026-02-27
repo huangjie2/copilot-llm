@@ -42,13 +42,15 @@ A lightweight OpenAI-compatible API proxy for GitHub Copilot, built with Quarkus
 
 ## Supported Models
 
-| Model | Provider |
-|-------|----------|
-| gpt-4o, gpt-4o-mini | OpenAI |
-| gpt-4-turbo, gpt-4 | OpenAI |
-| gpt-3.5-turbo | OpenAI |
-| claude-3.5-sonnet, claude-3-opus | Anthropic |
-| o1, o1-mini, o1-preview | OpenAI |
+| Model | Provider | Description |
+|-------|----------|-------------|
+| gpt-4.5-preview | OpenAI | Latest GPT-4.5 model |
+| gpt-4o, gpt-4o-mini | OpenAI | Multimodal models |
+| o1, o1-mini, o1-preview, o1-pro | OpenAI | Reasoning models |
+| claude-3.7-sonnet | Anthropic | Latest Claude model |
+| claude-3.5-sonnet, claude-3-opus | Anthropic | Claude series |
+| gemini-2.0-flash | Google | Gemini 2.0 Flash |
+| gemini-1.5-pro | Google | Gemini 1.5 Pro |
 
 ---
 

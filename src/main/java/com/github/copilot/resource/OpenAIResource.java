@@ -124,16 +124,23 @@ public class OpenAIResource {
     @Operation(summary = "List models", description = "Lists the currently available models")
     public Response listModels() {
         var models = List.of(
+            // OpenAI GPT-4.5 series
+            createModelData("gpt-4.5-preview", "openai"),
+            // OpenAI GPT-4o series
             createModelData("gpt-4o", "openai"),
             createModelData("gpt-4o-mini", "openai"),
-            createModelData("gpt-4-turbo", "openai"),
-            createModelData("gpt-4", "openai"),
-            createModelData("gpt-3.5-turbo", "openai"),
-            createModelData("claude-3.5-sonnet", "anthropic"),
-            createModelData("claude-3-opus", "anthropic"),
+            // OpenAI o1 reasoning series
             createModelData("o1", "openai"),
             createModelData("o1-mini", "openai"),
-            createModelData("o1-preview", "openai")
+            createModelData("o1-preview", "openai"),
+            createModelData("o1-pro", "openai"),
+            // Anthropic Claude series
+            createModelData("claude-3.7-sonnet", "anthropic"),
+            createModelData("claude-3.5-sonnet", "anthropic"),
+            createModelData("claude-3-opus", "anthropic"),
+            // Google Gemini series
+            createModelData("gemini-2.0-flash", "google"),
+            createModelData("gemini-1.5-pro", "google")
         );
         
         return Response.ok(new OpenAIModels.ModelsResponse("list", models)).build();
