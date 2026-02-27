@@ -42,15 +42,56 @@ A lightweight OpenAI-compatible API proxy for GitHub Copilot, built with Quarkus
 
 ## Supported Models
 
+> Updated: 2026-02-28 | Source: [GitHub Docs](https://docs.github.com/copilot/reference/ai-models/supported-models)
+
+### OpenAI Models
+
+| Model | Description | Status |
+|-------|-------------|--------|
+| gpt-4.1 | GPT-4 series | GA |
+| gpt-4o | Multimodal | GA |
+| gpt-5-mini | Lightweight GPT-5 | GA |
+| gpt-5.1 | GPT-5.1 | GA |
+| gpt-5.2 | Latest GPT-5 | GA |
+| gpt-5.1-codex | Code-optimized | GA |
+| gpt-5.1-codex-mini | Code-optimized (lightweight) | Preview |
+| gpt-5.1-codex-max | Code-optimized (max) | GA |
+| gpt-5.2-codex | Code-optimized (latest) | GA |
+
+### Anthropic Models
+
+| Model | Description | Status |
+|-------|-------------|--------|
+| claude-haiku-4.5 | Fast & efficient | GA |
+| claude-sonnet-4 | Balanced performance | GA |
+| claude-sonnet-4.5 | Enhanced sonnet | GA |
+| claude-opus-4.5 | High capability | GA |
+| claude-opus-4.6 | Latest Opus | GA |
+
+### Google Models
+
+| Model | Description | Status |
+|-------|-------------|--------|
+| gemini-2.5-pro | Gemini 2.5 Pro | GA |
+| gemini-3-flash | Gemini 3 Flash | Preview |
+| gemini-3-pro | Gemini 3 Pro | Preview |
+
+### Other Models
+
 | Model | Provider | Description |
 |-------|----------|-------------|
-| gpt-4.5-preview | OpenAI | Latest GPT-4.5 model |
-| gpt-4o, gpt-4o-mini | OpenAI | Multimodal models |
-| o1, o1-mini, o1-preview, o1-pro | OpenAI | Reasoning models |
-| claude-3.7-sonnet | Anthropic | Latest Claude model |
-| claude-3.5-sonnet, claude-3-opus | Anthropic | Claude series |
-| gemini-2.0-flash | Google | Gemini 2.0 Flash |
-| gemini-1.5-pro | Google | Gemini 1.5 Pro |
+| grok-code-fast-1 | xAI | Fast code generation |
+| raptor-mini | GitHub | Fine-tuned GPT-5 mini |
+
+### Deprecated Models (Feb 2026)
+
+The following models are no longer available:
+- ~~GPT-5~~ → Use **GPT-5.2**
+- ~~GPT-5-Codex~~ → Use **GPT-5.2-Codex**
+- ~~Claude Opus 4.1~~ → Use **Claude Opus 4.6**
+- ~~o1-mini, o3, o3-mini, o4-mini~~ → Use **GPT-5-mini**
+- ~~Gemini 2.0 Flash~~ → Use **Gemini 2.5 Pro**
+- ~~Claude Sonnet 3.5, 3.7~~ → Use **Claude Sonnet 4**
 
 ---
 

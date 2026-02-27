@@ -171,26 +171,43 @@ public class OpenAIResource {
 
     /**
      * Static fallback model list (used when not authenticated or API fails)
+     * Updated: 2026-02-28
+     * Source: https://docs.github.com/copilot/reference/ai-models/supported-models
      */
     private OpenAIModels.ModelsResponse getStaticModels() {
         var models = List.of(
-            // OpenAI GPT-4.5 series
-            createModelData("gpt-4.5-preview", "openai"),
-            // OpenAI GPT-4o series
+            // OpenAI GPT-4.x series
+            createModelData("gpt-4.1", "openai"),
             createModelData("gpt-4o", "openai"),
-            createModelData("gpt-4o-mini", "openai"),
-            // OpenAI o1 reasoning series
-            createModelData("o1", "openai"),
-            createModelData("o1-mini", "openai"),
-            createModelData("o1-preview", "openai"),
-            createModelData("o1-pro", "openai"),
-            // Anthropic Claude series
-            createModelData("claude-3.7-sonnet", "anthropic"),
-            createModelData("claude-3.5-sonnet", "anthropic"),
-            createModelData("claude-3-opus", "anthropic"),
+            
+            // OpenAI GPT-5 series
+            createModelData("gpt-5-mini", "openai"),
+            createModelData("gpt-5.1", "openai"),
+            createModelData("gpt-5.2", "openai"),
+            
+            // OpenAI GPT-5 Codex series (code-optimized)
+            createModelData("gpt-5.1-codex", "openai"),
+            createModelData("gpt-5.1-codex-mini", "openai"),
+            createModelData("gpt-5.1-codex-max", "openai"),
+            createModelData("gpt-5.2-codex", "openai"),
+            
+            // Anthropic Claude 4.x series
+            createModelData("claude-haiku-4.5", "anthropic"),
+            createModelData("claude-sonnet-4", "anthropic"),
+            createModelData("claude-sonnet-4.5", "anthropic"),
+            createModelData("claude-opus-4.5", "anthropic"),
+            createModelData("claude-opus-4.6", "anthropic"),
+            
             // Google Gemini series
-            createModelData("gemini-2.0-flash", "google"),
-            createModelData("gemini-1.5-pro", "google")
+            createModelData("gemini-2.5-pro", "google"),
+            createModelData("gemini-3-flash", "google"),
+            createModelData("gemini-3-pro", "google"),
+            
+            // xAI Grok series
+            createModelData("grok-code-fast-1", "xai"),
+            
+            // Fine-tuned models
+            createModelData("raptor-mini", "github")
         );
         return new OpenAIModels.ModelsResponse("list", models);
     }
