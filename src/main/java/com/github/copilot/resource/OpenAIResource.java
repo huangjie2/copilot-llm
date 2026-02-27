@@ -1,6 +1,7 @@
 package com.github.copilot.resource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.copilot.client.CopilotClient;
 import com.github.copilot.config.GitHubClient;
 import com.github.copilot.model.OpenAIModels;
 import com.github.copilot.service.AuthService;
@@ -19,6 +20,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * OpenAI-compatible REST API endpoints
@@ -35,6 +37,9 @@ public class OpenAIResource {
 
     @Inject
     EmbeddingService embeddingService;
+
+    @Inject
+    CopilotClient copilotClient;
 
     @Inject
     ObjectMapper objectMapper;
@@ -121,8 +126,53 @@ public class OpenAIResource {
     @GET
     @Path("/models")
     @Produces(MediaType.APPLICATION_JSON)
-    @Operation(summary = "List models", description = "Lists the currently available models")
+    @Operation(summary = "List models", description = "Lists the currently available models from Copilot API")
     public Response listModels() {
+        try {
+            if (authService.isAuthenticated()) {
+                // Fetch real models from Copilot API
+                OpenAIModels.ModelsResponse models = copilotClient.getModels(authService.getCopilotToken());
+                return Response.ok(models).build();
+            } else {
+                // Fallback to static list when not authenticated
+                Log.info("Not authenticated, returning static model list");
+                return Response.ok(getStaticModels()).build();
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to fetch models from Copilot API, using fallback");
+            return Response.ok(getStaticModels()).build();
+        }
+    }
+
+    @GET
+    @Path("/models/{modelId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(summary = "Retrieve model", description = "Retrieves a model instance from Copilot API")
+    public Response retrieveModel(@PathParam("modelId") String modelId) {
+        try {
+            if (authService.isAuthenticated()) {
+                // Fetch models and find the specific one
+                OpenAIModels.ModelsResponse models = copilotClient.getModels(authService.getCopilotToken());
+                Optional<OpenAIModels.ModelData> model = models.data().stream()
+                    .filter(m -> m.id().equals(modelId))
+                    .findFirst();
+                
+                if (model.isPresent()) {
+                    return Response.ok(model.get()).build();
+                }
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to fetch model from Copilot API");
+        }
+        
+        // Fallback: create a basic model response
+        return Response.ok(createModelData(modelId, "unknown")).build();
+    }
+
+    /**
+     * Static fallback model list (used when not authenticated or API fails)
+     */
+    private OpenAIModels.ModelsResponse getStaticModels() {
         var models = List.of(
             // OpenAI GPT-4.5 series
             createModelData("gpt-4.5-preview", "openai"),
@@ -142,16 +192,7 @@ public class OpenAIResource {
             createModelData("gemini-2.0-flash", "google"),
             createModelData("gemini-1.5-pro", "google")
         );
-        
-        return Response.ok(new OpenAIModels.ModelsResponse("list", models)).build();
-    }
-
-    @GET
-    @Path("/models/{modelId}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @Operation(summary = "Retrieve model", description = "Retrieves a model instance")
-    public Response retrieveModel(@PathParam("modelId") String modelId) {
-        return Response.ok(createModelData(modelId, "openai")).build();
+        return new OpenAIModels.ModelsResponse("list", models);
     }
 
     private OpenAIModels.ModelData createModelData(String id, String ownedBy) {
