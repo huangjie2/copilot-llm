@@ -83,16 +83,6 @@ A lightweight OpenAI-compatible API proxy for GitHub Copilot, built with Quarkus
 | grok-code-fast-1 | xAI | Fast code generation |
 | raptor-mini | GitHub | Fine-tuned GPT-5 mini |
 
-### Deprecated Models (Feb 2026)
-
-The following models are no longer available:
-- ~~GPT-5~~ → Use **GPT-5.2**
-- ~~GPT-5-Codex~~ → Use **GPT-5.2-Codex**
-- ~~Claude Opus 4.1~~ → Use **Claude Opus 4.6**
-- ~~o1-mini, o3, o3-mini, o4-mini~~ → Use **GPT-5-mini**
-- ~~Gemini 2.0 Flash~~ → Use **Gemini 2.5 Pro**
-- ~~Claude Sonnet 3.5, 3.7~~ → Use **Claude Sonnet 4**
-
 ---
 
 ## Quick Start
