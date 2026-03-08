@@ -19,8 +19,11 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * OpenAI-compatible REST API endpoints
@@ -55,14 +58,6 @@ public class OpenAIResource {
         content = @Content(schema = @Schema(implementation = OpenAIModels.ChatCompletionResponse.class)))
     public Response chatCompletion(OpenAIModels.ChatCompletionRequest request) {
         try {
-            if (!authService.isAuthenticated()) {
-                return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(new OpenAIModels.ErrorResponse(
-                        new OpenAIModels.ErrorData("Not authenticated. Use /v1/auth/device to authenticate.", "auth_error", null)
-                    ))
-                    .build();
-            }
-
             boolean wantsStreaming = Boolean.TRUE.equals(request.stream());
             
             if (wantsStreaming) {
@@ -90,6 +85,228 @@ public class OpenAIResource {
         }
     }
 
+    // ============ Responses API (OpenAI Responses API compatible) ============
+
+    @POST
+    @Path("/responses")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON, "text/event-stream"})
+    @Operation(summary = "Create response", description = "Creates a model response using the Responses API format")
+    @APIResponse(responseCode = "200", description = "Successful response")
+    public Response createResponse(OpenAIModels.ResponsesRequest request) {
+        try {
+            // Convert ResponsesRequest to ChatCompletionRequest
+            OpenAIModels.ChatCompletionRequest chatRequest = convertToChatRequest(request);
+            
+            boolean wantsStreaming = Boolean.TRUE.equals(request.stream());
+            
+            if (wantsStreaming) {
+                StreamingOutput streamingOutput = output -> 
+                    streamResponsesOutput(chatRequest, output);
+                    
+                return Response
+                    .ok(streamingOutput)
+                    .type("text/event-stream")
+                    .header("Cache-Control", "no-cache")
+                    .header("Connection", "keep-alive")
+                    .header("X-Accel-Buffering", "no")
+                    .build();
+            } else {
+                var chatResponse = chatService.chatCompletion(chatRequest);
+                var response = convertToResponsesResponse(chatResponse);
+                return Response.ok(response).build();
+            }
+        } catch (Exception e) {
+            Log.errorf(e, "Responses API failed");
+            return Response.serverError()
+                .entity(new OpenAIModels.ErrorResponse(
+                    new OpenAIModels.ErrorData(e.getMessage(), "server_error", null)
+                ))
+                .build();
+        }
+    }
+
+    /**
+     * Convert ResponsesRequest to ChatCompletionRequest
+     */
+    private OpenAIModels.ChatCompletionRequest convertToChatRequest(OpenAIModels.ResponsesRequest request) {
+        List<OpenAIModels.ChatMessage> messages = new ArrayList<>();
+        
+        // Add instructions as system message if present
+        if (request.instructions() != null && !request.instructions().isEmpty()) {
+            messages.add(new OpenAIModels.ChatMessage("system", request.instructions()));
+        }
+        
+        // Handle input - can be String or List
+        if (request.input() instanceof String inputStr) {
+            messages.add(new OpenAIModels.ChatMessage("user", inputStr));
+        } else if (request.input() instanceof List<?> inputList) {
+            for (Object item : inputList) {
+                if (item instanceof Map<?, ?> map) {
+                    String role = (String) map.get("role");
+                    Object content = map.get("content");
+                    messages.add(new OpenAIModels.ChatMessage(role, content, null, null, null));
+                } else if (item instanceof OpenAIModels.ResponsesInputItem inputItem) {
+                    messages.add(new OpenAIModels.ChatMessage(
+                        inputItem.role(), 
+                        inputItem.content(), 
+                        null, null, null
+                    ));
+                }
+            }
+        }
+        
+        // Convert tools if present
+        List<OpenAIModels.Tool> tools = null;
+        if (request.tools() != null && !request.tools().isEmpty()) {
+            tools = request.tools().stream()
+                .map(t -> new OpenAIModels.Tool(t.type(), 
+                    new OpenAIModels.ToolFunction(t.name(), t.description(), t.parameters())))
+                .toList();
+        }
+        
+        return new OpenAIModels.ChatCompletionRequest(
+            request.model(),
+            messages,
+            request.maxOutputTokens(),
+            request.temperature(),
+            request.topP(),
+            request.stream(),
+            null,
+            tools,
+            null,
+            null,
+            null
+        );
+    }
+
+    /**
+     * Convert ChatCompletionResponse to ResponsesResponse
+     */
+    private OpenAIModels.ResponsesResponse convertToResponsesResponse(OpenAIModels.ChatCompletionResponse chatResponse) {
+        String responseId = "resp_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
+        
+        List<OpenAIModels.ResponsesOutputItem> outputItems = new ArrayList<>();
+        
+        if (chatResponse.choices() != null && !chatResponse.choices().isEmpty()) {
+            var choice = chatResponse.choices().get(0);
+            var message = choice.message();
+            
+            String itemId = "msg_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
+            
+            List<OpenAIModels.ResponsesContent> contentList = new ArrayList<>();
+            if (message.content() != null) {
+                contentList.add(new OpenAIModels.ResponsesContent(
+                    "output_text",
+                    message.content().toString(),
+                    null
+                ));
+            }
+            
+            outputItems.add(new OpenAIModels.ResponsesOutputItem(
+                itemId,
+                "message",
+                "completed",
+                "assistant",
+                contentList,
+                null
+            ));
+        }
+        
+        return new OpenAIModels.ResponsesResponse(
+            responseId,
+            "response",
+            chatResponse.created(),
+            chatResponse.model(),
+            "completed",
+            outputItems,
+            chatResponse.usage()
+        );
+    }
+
+    /**
+     * Stream Responses API output
+     */
+    private void streamResponsesOutput(OpenAIModels.ChatCompletionRequest request, java.io.OutputStream output) {
+        try {
+            String responseId = "resp_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
+            String itemId = "msg_" + UUID.randomUUID().toString().replace("-", "").substring(0, 24);
+            long createdAt = System.currentTimeMillis() / 1000;
+            String model = request.model() != null ? request.model() : "gpt-5-mini";
+            
+            // Send initial response event with role
+            var initialItem = new OpenAIModels.ResponsesOutputItem(
+                itemId,
+                "message",
+                "in_progress",
+                "assistant",
+                List.of(new OpenAIModels.ResponsesContent("output_text", "", null)),
+                null
+            );
+            var initialResponse = new OpenAIModels.ResponsesResponse(
+                responseId, "response", createdAt, model, "in_progress",
+                List.of(initialItem), null
+            );
+            output.write(("data: " + objectMapper.writeValueAsString(initialResponse) + "\n\n").getBytes());
+            output.flush();
+            
+            // Stream content
+            StringBuilder content = new StringBuilder();
+            chatService.chatCompletionStream(request)
+                .subscribe().with(chunk -> {
+                    try {
+                        if (chunk.choices() != null && !chunk.choices().isEmpty()) {
+                            var delta = chunk.choices().get(0).delta();
+                            if (delta.content() != null) {
+                                content.append(delta.content());
+                                
+                                var outputItem = new OpenAIModels.ResponsesOutputItem(
+                                    itemId,
+                                    "message",
+                                    "in_progress",
+                                    "assistant",
+                                    List.of(new OpenAIModels.ResponsesContent("output_text", content.toString(), null)),
+                                    null
+                                );
+                                var streamResponse = new OpenAIModels.ResponsesResponse(
+                                    responseId, "response", createdAt, model, "in_progress",
+                                    List.of(outputItem), null
+                                );
+                                output.write(("data: " + objectMapper.writeValueAsString(streamResponse) + "\n\n").getBytes());
+                                output.flush();
+                            }
+                            
+                            // Check for completion
+                            if (chunk.choices().get(0).finishReason() != null) {
+                                var finalItem = new OpenAIModels.ResponsesOutputItem(
+                                    itemId,
+                                    "message",
+                                    "completed",
+                                    "assistant",
+                                    List.of(new OpenAIModels.ResponsesContent("output_text", content.toString(), null)),
+                                    null
+                                );
+                                var finalResponse = new OpenAIModels.ResponsesResponse(
+                                    responseId, "response", createdAt, model, "completed",
+                                    List.of(finalItem), chunk.usage()
+                                );
+                                output.write(("data: " + objectMapper.writeValueAsString(finalResponse) + "\n\n").getBytes());
+                                output.flush();
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.errorf(e, "Error writing streaming response");
+                    }
+                });
+            
+            output.write("data: [DONE]\n\n".getBytes());
+            output.flush();
+        } catch (Exception e) {
+            Log.errorf(e, "Streaming responses failed");
+            throw new RuntimeException("Streaming responses failed", e);
+        }
+    }
+
     // ============ Embeddings ============
 
     @POST
@@ -101,14 +318,6 @@ public class OpenAIResource {
         content = @Content(schema = @Schema(implementation = OpenAIModels.EmbeddingResponse.class)))
     public Response embeddings(OpenAIModels.EmbeddingRequest request) {
         try {
-            if (!authService.isAuthenticated()) {
-                return Response.status(Response.Status.UNAUTHORIZED)
-                    .entity(new OpenAIModels.ErrorResponse(
-                        new OpenAIModels.ErrorData("Not authenticated. Use /v1/auth/device to authenticate.", "auth_error", null)
-                    ))
-                    .build();
-            }
-
             var response = embeddingService.createEmbeddings(request);
             return Response.ok(response).build();
         } catch (Exception e) {

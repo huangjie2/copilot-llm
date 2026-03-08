@@ -34,3 +34,6 @@ logs/
 
 # Quarkus
 .quarkus/
+
+# AI context files
+AGENTS.md

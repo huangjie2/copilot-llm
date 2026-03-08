@@ -23,6 +23,8 @@ public interface CopilotConfig {
 
     int tokenRefreshBuffer();
 
+    boolean autoRefreshToken();
+
     interface OAuth {
         String clientId();
         String scopes();

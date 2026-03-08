@@ -176,4 +176,71 @@ public class OpenAIModels {
         String type,
         String code
     ) {}
+
+    // ============ Responses API Models (OpenAI Responses API) ============
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ResponsesRequest(
+        String model,
+        Object input,                    // String or List<ResponsesInputItem>
+        String instructions,
+        @JsonProperty("max_output_tokens") Integer maxOutputTokens,
+        Double temperature,
+        @JsonProperty("top_p") Double topP,
+        Boolean stream,
+        List<ResponsesTool> tools,
+        @JsonProperty("previous_response_id") String previousResponseId,
+        Boolean store
+    ) {
+        public ResponsesRequest {
+            if (stream == null) stream = false;
+        }
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ResponsesInputItem(
+        String type,                     // "message", "function_call", "function_call_output"
+        String role,
+        Object content,
+        @JsonProperty("call_id") String callId,
+        String name,
+        String arguments,
+        String status
+    ) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ResponsesTool(
+        String type,                     // "function", "web_search", "file_search", etc.
+        String name,
+        String description,
+        Map<String, Object> parameters
+    ) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ResponsesResponse(
+        String id,
+        String object,                   // "response"
+        @JsonProperty("created_at") long createdAt,
+        String model,
+        String status,                   // "completed", "in_progress", etc.
+        List<ResponsesOutputItem> output,
+        Usage usage
+    ) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ResponsesOutputItem(
+        String id,
+        String type,                     // "message", "reasoning", "function_call"
+        String status,
+        String role,
+        List<ResponsesContent> content,
+        String summary
+    ) {}
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ResponsesContent(
+        String type,                     // "output_text", "input_text"
+        String text,
+        List<Object> annotations
+    ) {}
 }

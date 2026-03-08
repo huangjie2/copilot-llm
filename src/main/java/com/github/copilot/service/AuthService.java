@@ -194,9 +194,13 @@ public class AuthService {
 
     /**
      * Scheduled token refresh (every 5 minutes)
+     * Only runs if auto-refresh-token is enabled in config
      */
     @Scheduled(every = "5m")
     void scheduledTokenRefresh() {
+        if (!config.autoRefreshToken()) {
+            return;
+        }
         if (cachedGitHubToken != null && !isTokenValid()) {
             try {
                 refreshToken();

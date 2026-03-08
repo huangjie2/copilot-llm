@@ -42,9 +42,7 @@ copilot:
     enterprise: https://api.enterprise.githubcopilot.com
   
   # Default model (can be overridden in request)
-  # Available models: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, gpt-3.5-turbo,
-  #                   claude-3.5-sonnet, claude-3-opus, o1, o1-mini, o1-preview
-  default-model: gpt-4o
+  default-model: gpt-5-mini
   
   # Headers for VSCode emulation (required for API access)
   headers:
@@ -56,6 +54,9 @@ copilot:
   
   # Token refresh buffer (seconds before expiry to refresh)
   token-refresh-buffer: 60
+
+  # Auto refresh token on schedule (every 5 minutes)
+  auto-refresh-token: false
   
   # Token storage directory (default: ~/.config/copilot-proxy)
   # token-dir: ~/.config/copilot-proxy
