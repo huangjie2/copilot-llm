@@ -60,11 +60,24 @@ public class AuthService {
 
     /**
      * Get the current GitHub token
+     * Priority: cached -> environment variable -> file
      */
     public Optional<String> getGitHubToken() {
         if (cachedGitHubToken != null) {
             return Optional.of(cachedGitHubToken);
         }
+        
+        // Try environment variables first
+        String envToken = System.getenv("GITHUB_TOKEN");
+        if (envToken == null || envToken.isEmpty()) {
+            envToken = System.getenv("COPILOT_GITHUB_TOKEN");
+        }
+        if (envToken != null && !envToken.isEmpty()) {
+            cachedGitHubToken = envToken;
+            Log.debug("GitHub token loaded from environment variable");
+            return Optional.of(envToken);
+        }
+        
         return loadGitHubToken();
     }
 
