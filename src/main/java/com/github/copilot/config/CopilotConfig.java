@@ -25,6 +25,8 @@ public interface CopilotConfig {
 
     boolean autoRefreshToken();
 
+    Optional<Proxy> proxy();
+
     interface OAuth {
         String clientId();
         String scopes();
@@ -48,6 +50,13 @@ public interface CopilotConfig {
         String copilotIntegrationId();
         String userAgent();
         String openaiIntent();
+    }
+
+    interface Proxy {
+        String host();
+        int port();
+        Optional<String> username();
+        Optional<String> password();
     }
 
     /**

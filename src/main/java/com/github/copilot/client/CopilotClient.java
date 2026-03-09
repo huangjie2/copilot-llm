@@ -9,11 +9,14 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
 import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -34,10 +37,41 @@ public class CopilotClient {
 
     @PostConstruct
     void init() {
-        this.httpClient = HttpClient.newBuilder()
+        HttpClient.Builder builder = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
-            .version(HttpClient.Version.HTTP_2)
-            .build();
+            .version(HttpClient.Version.HTTP_2);
+        
+        // Configure proxy if specified
+        config.proxy().ifPresent(proxy -> {
+            String host = proxy.host();
+            int port = proxy.port();
+            Log.infof("Configuring HTTP proxy: %s:%d", host, port);
+            
+            builder.proxy(ProxySelector.of(new InetSocketAddress(host, port)));
+            
+            // Configure proxy authentication if credentials are provided
+            if (proxy.username().isPresent() && proxy.password().isPresent()) {
+                String auth = proxy.username().get() + ":" + proxy.password().get();
+                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+                Log.infof("Proxy authentication configured for user: %s", proxy.username().get());
+                // Note: Java HttpClient doesn't directly support proxy auth in builder
+                // We'll handle it via default authenticator
+                java.net.Authenticator.setDefault(new java.net.Authenticator() {
+                    @Override
+                    protected java.net.PasswordAuthentication getPasswordAuthentication() {
+                        if (getRequestingHost().equalsIgnoreCase(host) && getRequestingPort() == port) {
+                            return new java.net.PasswordAuthentication(
+                                proxy.username().get(),
+                                proxy.password().get().toCharArray()
+                            );
+                        }
+                        return null;
+                    }
+                });
+            }
+        });
+        
+        this.httpClient = builder.build();
     }
 
     /**

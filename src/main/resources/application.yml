@@ -60,6 +60,27 @@ copilot:
   
   # Token storage directory (default: ~/.config/copilot-proxy)
   # token-dir: ~/.config/copilot-proxy
+  
+  # HTTP Proxy configuration (optional)
+  # All HTTP calls (CopilotClient, GitHubClient, GitHubApiClient) will use this proxy
+  # proxy:
+  #   host: proxy.example.com
+  #   port: 8080
+  #   username: user  # optional, for proxy authentication
+  #   password: pass  # optional, for proxy authentication
+
+# Quarkus REST Client proxy configuration (for GitHubClient, GitHubApiClient)
+# Uncomment and configure if you need proxy for GitHub API calls
+#quarkus:
+#  rest-client:
+#    github-client:
+#      proxy-address: proxy.example.com:8080
+#      proxy-user: user
+#      proxy-password: pass
+#    git-hub-api-client:
+#      proxy-address: proxy.example.com:8080
+#      proxy-user: user
+#      proxy-password: pass
 
 # Additional Quarkus settings for production
 #quarkus:
