@@ -169,7 +169,7 @@ public class AuthService {
         }
         
         try {
-            var response = gitHubApiClient.getCopilotToken("token " + gitHubToken.get());
+            var response = gitHubApiClient.getCopilotToken("Bearer " + gitHubToken.get());
             
             this.cachedCopilotToken = response.token();
             this.tokenExpiresAt = response.expires_at();
