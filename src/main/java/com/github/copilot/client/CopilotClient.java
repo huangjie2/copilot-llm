@@ -16,7 +16,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -51,11 +50,8 @@ public class CopilotClient {
             
             // Configure proxy authentication if credentials are provided
             if (proxy.username().isPresent() && proxy.password().isPresent()) {
-                String auth = proxy.username().get() + ":" + proxy.password().get();
-                String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
                 Log.infof("Proxy authentication configured for user: %s", proxy.username().get());
-                // Note: Java HttpClient doesn't directly support proxy auth in builder
-                // We'll handle it via default authenticator
+                // Java HttpClient uses Authenticator for proxy authentication
                 java.net.Authenticator.setDefault(new java.net.Authenticator() {
                     @Override
                     protected java.net.PasswordAuthentication getPasswordAuthentication() {
