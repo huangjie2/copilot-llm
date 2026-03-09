@@ -73,16 +73,17 @@ public class CopilotClient {
                 
                 // Configure proxy authentication if credentials are provided
                 if (proxy.username().isPresent() && proxy.password().isPresent()) {
-                    Log.infof("Proxy authentication configured for user: %s", proxy.username().get());
-                    // Java HttpClient uses Authenticator for proxy authentication
-                    java.net.Authenticator.setDefault(new java.net.Authenticator() {
+                    final String username = proxy.username().get();
+                    final String password = proxy.password().get();
+                    Log.infof("Proxy authentication configured for user: %s", username);
+                    
+                    // Use builder.authenticator() instead of static Authenticator.setDefault()
+                    builder.authenticator(new java.net.Authenticator() {
                         @Override
                         protected java.net.PasswordAuthentication getPasswordAuthentication() {
-                            if (getRequestingHost().equalsIgnoreCase(host) && getRequestingPort() == port) {
-                                return new java.net.PasswordAuthentication(
-                                    proxy.username().get(),
-                                    proxy.password().get().toCharArray()
-                                );
+                            // Return credentials for proxy authentication
+                            if (getRequestorType() == RequestorType.PROXY) {
+                                return new java.net.PasswordAuthentication(username, password.toCharArray());
                             }
                             return null;
                         }
