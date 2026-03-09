@@ -68,6 +68,12 @@ copilot:
   #   port: 8080
   #   username: user  # optional, for proxy authentication
   #   password: pass  # optional, for proxy authentication
+  
+  # SSL/TLS certificate configuration (optional)
+  # Use this when your company has a custom CA certificate for HTTPS interception
+  # ssl:
+  #   cert-path: /path/to/company-ca.pem  # PEM format certificate
+  #   cert-password: pass  # optional, if certificate is password protected
 
 # Quarkus REST Client proxy configuration (for GitHubClient, GitHubApiClient)
 # Uncomment and configure if you need proxy for GitHub API calls
@@ -81,6 +87,13 @@ copilot:
 #      proxy-address: proxy.example.com:8080
 #      proxy-user: user
 #      proxy-password: pass
+
+# SSL certificate for Quarkus REST Client (GitHubClient, GitHubApiClient)
+# Import your company CA certificate into JVM truststore:
+# keytool -import -alias company-ca -file /path/to/company-ca.pem -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit
+# 
+# Or set via environment variable:
+# JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=/path/to/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
 
 # Additional Quarkus settings for production
 #quarkus:

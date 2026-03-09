@@ -8,6 +8,10 @@ import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
@@ -15,6 +19,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -36,38 +46,82 @@ public class CopilotClient {
 
     @PostConstruct
     void init() {
-        HttpClient.Builder builder = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .version(HttpClient.Version.HTTP_2);
-        
-        // Configure proxy if specified
-        config.proxy().ifPresent(proxy -> {
-            String host = proxy.host();
-            int port = proxy.port();
-            Log.infof("Configuring HTTP proxy: %s:%d", host, port);
+        try {
+            HttpClient.Builder builder = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(30))
+                .version(HttpClient.Version.HTTP_2);
             
-            builder.proxy(ProxySelector.of(new InetSocketAddress(host, port)));
+            // Configure SSL with custom certificate if specified
+            config.ssl().ifPresent(ssl -> {
+                try {
+                    SSLContext sslContext = createSSLContext(ssl.certPath(), ssl.certPassword().orElse(null));
+                    builder.sslContext(sslContext);
+                    Log.infof("Custom SSL certificate loaded from: %s", ssl.certPath());
+                } catch (Exception e) {
+                    Log.errorf(e, "Failed to load SSL certificate from: %s", ssl.certPath());
+                    throw new RuntimeException("Failed to load SSL certificate", e);
+                }
+            });
             
-            // Configure proxy authentication if credentials are provided
-            if (proxy.username().isPresent() && proxy.password().isPresent()) {
-                Log.infof("Proxy authentication configured for user: %s", proxy.username().get());
-                // Java HttpClient uses Authenticator for proxy authentication
-                java.net.Authenticator.setDefault(new java.net.Authenticator() {
-                    @Override
-                    protected java.net.PasswordAuthentication getPasswordAuthentication() {
-                        if (getRequestingHost().equalsIgnoreCase(host) && getRequestingPort() == port) {
-                            return new java.net.PasswordAuthentication(
-                                proxy.username().get(),
-                                proxy.password().get().toCharArray()
-                            );
+            // Configure proxy if specified
+            config.proxy().ifPresent(proxy -> {
+                String host = proxy.host();
+                int port = proxy.port();
+                Log.infof("Configuring HTTP proxy: %s:%d", host, port);
+                
+                builder.proxy(ProxySelector.of(new InetSocketAddress(host, port)));
+                
+                // Configure proxy authentication if credentials are provided
+                if (proxy.username().isPresent() && proxy.password().isPresent()) {
+                    Log.infof("Proxy authentication configured for user: %s", proxy.username().get());
+                    // Java HttpClient uses Authenticator for proxy authentication
+                    java.net.Authenticator.setDefault(new java.net.Authenticator() {
+                        @Override
+                        protected java.net.PasswordAuthentication getPasswordAuthentication() {
+                            if (getRequestingHost().equalsIgnoreCase(host) && getRequestingPort() == port) {
+                                return new java.net.PasswordAuthentication(
+                                    proxy.username().get(),
+                                    proxy.password().get().toCharArray()
+                                );
+                            }
+                            return null;
                         }
-                        return null;
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
+            
+            this.httpClient = builder.build();
+        } catch (Exception e) {
+            Log.errorf(e, "Failed to initialize CopilotClient");
+            throw new RuntimeException("Failed to initialize CopilotClient", e);
+        }
+    }
+    
+    /**
+     * Create SSLContext with custom certificate
+     */
+    private SSLContext createSSLContext(String certPath, String certPassword) throws Exception {
+        // Load the certificate
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        Certificate cert;
+        try (InputStream is = Files.newInputStream(Paths.get(certPath))) {
+            cert = cf.generateCertificate(is);
+        }
         
-        this.httpClient = builder.build();
+        // Create a KeyStore and add the certificate
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry("custom-ca", cert);
+        
+        // Create TrustManager that trusts the custom certificate
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
+        
+        // Create SSLContext
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, tmf.getTrustManagers(), null);
+        
+        return sslContext;
     }
 
     /**

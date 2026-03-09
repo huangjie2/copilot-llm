@@ -27,6 +27,8 @@ public interface CopilotConfig {
 
     Optional<Proxy> proxy();
 
+    Optional<Ssl> ssl();
+
     interface OAuth {
         String clientId();
         String scopes();
@@ -57,6 +59,11 @@ public interface CopilotConfig {
         int port();
         Optional<String> username();
         Optional<String> password();
+    }
+
+    interface Ssl {
+        String certPath();
+        Optional<String> certPassword();
     }
 
     /**
