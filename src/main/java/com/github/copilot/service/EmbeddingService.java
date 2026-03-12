@@ -8,9 +8,6 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Service for Copilot Embeddings
  */
@@ -33,6 +30,11 @@ public class EmbeddingService {
 
     /**
      * Generate embeddings for the given input
+     * Input can be:
+     * - A single string
+     * - An array of strings
+     * - An array of integers (tokens)
+     * - An array of arrays of integers (multiple token arrays)
      */
     public OpenAIModels.EmbeddingResponse createEmbeddings(OpenAIModels.EmbeddingRequest request) {
         try {
@@ -43,87 +45,17 @@ public class EmbeddingService {
                 ? DEFAULT_EMBEDDING_MODEL
                 : request.model();
             
-            // Normalize input to list format
-            List<String> inputs = normalizeInput(request.input());
-            
-            // Process each input
-            List<OpenAIModels.EmbeddingData> dataList = new ArrayList<>();
-            int totalPromptTokens = 0;
-            
-            for (int i = 0; i < inputs.size(); i++) {
-                var singleRequest = new OpenAIModels.EmbeddingRequest(
-                    model,
-                    inputs.get(i),
-                    request.encodingFormat()
-                );
-                
-                var response = copilotClient.embeddings(copilotToken, singleRequest);
-                
-                if (response.data() != null && !response.data().isEmpty()) {
-                    dataList.add(new OpenAIModels.EmbeddingData(
-                        "embedding",
-                        i,
-                        response.data().get(0).embedding()
-                    ));
-                }
-                
-                if (response.usage() != null && response.usage().promptTokens() != null) {
-                    totalPromptTokens += response.usage().promptTokens();
-                }
-            }
-            
-            return new OpenAIModels.EmbeddingResponse(
-                "list",
-                dataList,
+            // Build request with model and original input (don't normalize - let API handle it)
+            var finalRequest = new OpenAIModels.EmbeddingRequest(
                 model,
-                new OpenAIModels.Usage(totalPromptTokens, 0, totalPromptTokens)
+                request.input(),
+                request.encodingFormat()
             );
+            
+            return copilotClient.embeddings(copilotToken, finalRequest);
         } catch (Exception e) {
             Log.errorf(e, "Embeddings failed");
             throw new RuntimeException("Embeddings failed", e);
         }
-    }
-
-    /**
-     * Normalize input to a list of strings
-     */
-    @SuppressWarnings("unchecked")
-    private List<String> normalizeInput(Object input) {
-        if (input == null) {
-            throw new IllegalArgumentException("Input cannot be null");
-        }
-        
-        if (input instanceof String) {
-            return List.of((String) input);
-        }
-        
-        if (input instanceof List) {
-            List<?> list = (List<?>) input;
-            List<String> result = new ArrayList<>();
-            for (Object item : list) {
-                if (item instanceof String) {
-                    result.add((String) item);
-                } else {
-                    result.add(item.toString());
-                }
-            }
-            return result;
-        }
-        
-        // Handle array
-        if (input.getClass().isArray()) {
-            Object[] array = (Object[]) input;
-            List<String> result = new ArrayList<>();
-            for (Object item : array) {
-                if (item instanceof String) {
-                    result.add((String) item);
-                } else {
-                    result.add(item.toString());
-                }
-            }
-            return result;
-        }
-        
-        throw new IllegalArgumentException("Input must be a string or array of strings");
     }
 }
