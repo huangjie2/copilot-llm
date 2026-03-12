@@ -242,6 +242,9 @@ public class CopilotClient {
         String url = config.getApiBaseUrl() + "/embeddings";
         String body = objectMapper.writeValueAsString(request);
         
+        Log.debugf("Embedding request URL: %s", url);
+        Log.debugf("Embedding request body: %s", body);
+        
         HttpRequest httpRequest = HttpRequest.newBuilder()
             .uri(URI.create(url))
             .header("Content-Type", "application/json")

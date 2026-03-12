@@ -1,7 +1,9 @@
 package com.github.copilot.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -92,9 +94,34 @@ public class OpenAIModels {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record EmbeddingRequest(
         String model,
-        Object input,
+        @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+        @JsonProperty("input") List<Object> input,
         @JsonProperty("encoding_format") String encodingFormat
-    ) {}
+    ) {
+        /**
+         * Compact constructor for normalization
+         */
+        public EmbeddingRequest {
+            // Ensure input is never null
+            if (input == null) {
+                input = new ArrayList<>();
+            }
+        }
+        
+        /**
+         * Factory method for single string input
+         */
+        public static EmbeddingRequest ofString(String model, String input, String encodingFormat) {
+            return new EmbeddingRequest(model, List.of(input), encodingFormat);
+        }
+        
+        /**
+         * Factory method for string list input
+         */
+        public static EmbeddingRequest ofStrings(String model, List<String> input, String encodingFormat) {
+            return new EmbeddingRequest(model, new ArrayList<>(input), encodingFormat);
+        }
+    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public record EmbeddingResponse(
